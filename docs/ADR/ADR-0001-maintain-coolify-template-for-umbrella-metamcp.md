@@ -3,7 +3,8 @@
 - Status: Accepted
 - Date: 2026-09-07
 - Implemented: 2026-09-07 — [`docker-compose.yaml`](../../docker-compose.yaml)
-- Tags: `mcp`, `metamcp`, `umbrella`, `coolify`, `docker-compose`
+- Revised: 2026-09-08 — Cloudflare Tunnel added as the only public access path
+- Tags: `mcp`, `metamcp`, `umbrella`, `coolify`, `docker-compose`, `cloudflare-tunnel`
 
 ## Context
 
@@ -21,6 +22,10 @@ Coolify уже распространяет MetaMCP через собствен�
 деплоя, но для дистрибутива
 [`Umbrella-IT-Group/metamcp`](https://github.com/Umbrella-IT-Group/metamcp).
 
+Публичный доступ к нашему экземпляру выполняется через remotely-managed Cloudflare Tunnel, а не
+через Coolify proxy. Поэтому connector `cloudflared` должен быть частью того же Compose stack и
+обращаться к MetaMCP по внутреннему имени сервиса.
+
 Для этого не требуется форкать исходный код MetaMCP, собирать отдельную deploy-платформу или
 переносить в этот ADR конфигурацию MCP-серверов, namespace'ов и endpoint'ов. Нужен только свой
 вариант Coolify template, который можно развивать вместе с требованиями нашего деплоя.
@@ -37,9 +42,13 @@ Coolify уже распространяет MetaMCP через собствен�
 2. PostgreSQL входит в тот же Compose stack и хранит данные в именованном persistent volume.
 3. Подключение к PostgreSQL, URL приложения и секрет аутентификации задаются через переменные
    окружения Coolify; секреты не коммитятся в git.
-4. Публичный URL задаётся через magic variable `SERVICE_URL_*`, как в официальном каталоге.
-5. Для приложения и PostgreSQL определяются healthchecks, а приложение зависит от готовности БД.
-6. Docker Compose-файл является source of truth для состава stack, переменных, volumes и
+4. Публичный origin задаётся обязательной переменной `METAMCP_PUBLIC_URL` и передаётся в
+   `APP_URL` и `NEXT_PUBLIC_APP_URL`. Coolify proxy для сервиса приложения не используется.
+5. `cloudflared` запускается из официального образа с remotely-managed tunnel token из secret
+   variable `CLOUDFLARE_TUNNEL_TOKEN` и зависит от успешного healthcheck приложения.
+6. В Cloudflare tunnel route направляется на `http://app:12008`; host port не публикуется.
+7. Для приложения и PostgreSQL определяются healthchecks, а приложение зависит от готовности БД.
+8. Docker Compose-файл является source of truth для состава stack, переменных, volumes и
    healthchecks. Coolify разворачивает его напрямую из `RAG-mcp`.
 
 Шаблон не подключается к каталогу Coolify во время выполнения и не копируется из него
@@ -56,8 +65,9 @@ Coolify уже распространяет MetaMCP через собствен�
 В рамках ADR:
 
 - собственный Coolify-compatible Docker Compose template;
-- сервис Umbrella MetaMCP и его PostgreSQL;
+- сервис Umbrella MetaMCP, его PostgreSQL и connector `cloudflared`;
 - Coolify variables, secrets, volume, healthchecks и dependency wiring;
+- внутренний origin Cloudflare Tunnel и публичный URL приложения;
 - процедура сопровождения template относительно официального каталога Coolify и релизов
   Umbrella MetaMCP.
 
@@ -67,7 +77,7 @@ Coolify уже распространяет MetaMCP через собствен�
 - собственная сборка образа MetaMCP;
 - декларативное создание MCP-серверов, namespace'ов, endpoint'ов, пользователей и API-ключей;
 - конфигурация подключаемого `rag-gateway`;
-- backup policy, внешняя экспозиция и выбор конкретной версии образа.
+- backup policy, Cloudflare Access policy, DNS lifecycle и выбор конкретной версии образа.
 
 Эти вопросы могут быть зафиксированы отдельными ADR, если для них появятся самостоятельные
 архитектурные решения.
@@ -80,12 +90,14 @@ Coolify уже распространяет MetaMCP через собствен�
 - структура остаётся знакомой и совместимой с моделью service templates Coolify;
 - изменения Umbrella-специфичного деплоя не зависят от принятия правок в официальный каталог;
 - обновление template и образа проходит через обычный review в `RAG-mcp`.
+- приложение не требует входящего host port: `cloudflared` устанавливает исходящее соединение.
 
 Отрицательные:
 
 - мы сами отвечаем за актуальность template;
 - исправления официального MetaMCP template не попадут к нам автоматически;
 - расхождения с официальным шаблоном необходимо удерживать минимальными и документированными.
+- tunnel token и published application route необходимо создать и сопровождать в Cloudflare.
 
 ## Alternatives considered
 

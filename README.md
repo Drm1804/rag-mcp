@@ -1,7 +1,8 @@
 # RAG-mcp
 
 Coolify service template for deploying
-[Umbrella MetaMCP](https://github.com/Umbrella-IT-Group/metamcp) with PostgreSQL.
+[Umbrella MetaMCP](https://github.com/Umbrella-IT-Group/metamcp) with PostgreSQL and a
+Cloudflare Tunnel connector.
 
 The stack is intentionally based on the official
 [MetaMCP template from the Coolify catalog](https://github.com/coollabsio/coolify/blob/main/templates/compose/metamcp.yaml).
@@ -13,15 +14,32 @@ variable conventions stay aligned with the catalog template.
 1. Create a new resource from this Git repository.
 2. Select **Docker Compose** as the build pack.
 3. Set the Compose location to `/docker-compose.yaml`.
-4. Assign the required domain to the `app` service if Coolify did not derive it automatically.
-5. Deploy the resource.
+4. Add `METAMCP_PUBLIC_URL` with the public HTTPS origin, for example
+   `https://metamcp.example.com`.
+5. Add `CLOUDFLARE_TUNNEL_TOKEN` as a secret variable.
+6. Deploy the resource. Do not assign a Coolify proxy domain to the `app` service.
 
-Coolify generates and persists these variables from the Compose file:
+Coolify generates and persists these credentials from the Compose file:
 
-- `SERVICE_URL_METAMCP` — public application URL;
 - `SERVICE_USER_POSTGRES` — PostgreSQL user;
 - `SERVICE_PASSWORD_POSTGRES` — PostgreSQL password;
 - `SERVICE_PASSWORD_AUTH` — MetaMCP authentication secret.
+
+The following values must be supplied manually:
+
+- `METAMCP_PUBLIC_URL` — the exact public HTTPS origin exposed through the tunnel;
+- `CLOUDFLARE_TUNNEL_TOKEN` — token of a remotely-managed tunnel; mark it as secret.
+
+In the Cloudflare dashboard, configure the tunnel's published application route as follows:
+
+| Setting | Value |
+| --- | --- |
+| Public hostname | Hostname from `METAMCP_PUBLIC_URL` |
+| Service type | HTTP |
+| Service URL | `http://app:12008` |
+
+`app` is the Compose service name resolvable from `cloudflared` inside the stack network. No host
+port needs to be published.
 
 The PostgreSQL data is stored in the `postgres_data` named volume. Do not rotate generated
 passwords or remove the volume unless the corresponding data migration or recovery procedure is
@@ -51,10 +69,11 @@ outside ADR-0001; the override keeps this deployment template usable when such a
 Provide placeholder values for Coolify-generated variables and render the Compose model:
 
 ```bash
-SERVICE_URL_METAMCP=http://localhost:12008 \
+METAMCP_PUBLIC_URL=http://localhost:12008 \
 SERVICE_USER_POSTGRES=metamcp \
 SERVICE_PASSWORD_POSTGRES=local-only-password \
 SERVICE_PASSWORD_AUTH=local-only-auth-secret \
+CLOUDFLARE_TUNNEL_TOKEN=validation-only-token \
 docker compose -f docker-compose.yaml config
 ```
 
