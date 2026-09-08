@@ -6,8 +6,8 @@ Cloudflare Tunnel connector.
 
 The stack is intentionally based on the official
 [MetaMCP template from the Coolify catalog](https://github.com/coollabsio/coolify/blob/main/templates/compose/metamcp.yaml).
-The application image is the maintained Umbrella distribution; the deployment shape and Coolify
-variable conventions stay aligned with the catalog template.
+The application is built from the maintained Umbrella distribution using its own Dockerfile; the
+deployment shape and Coolify variable conventions stay aligned with the catalog template.
 
 ## Deploy in Coolify
 
@@ -49,7 +49,6 @@ planned.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `METAMCP_IMAGE` | `ghcr.io/umbrella-it-group/metamcp:latest` | Umbrella MetaMCP image reference |
 | `POSTGRES_HOST` | `postgres` | PostgreSQL service host |
 | `POSTGRES_PORT` | `5432` | PostgreSQL service port |
 | `POSTGRES_DB` | `metamcp_db` | PostgreSQL database name |
@@ -58,11 +57,15 @@ planned.
 MetaMCP application data such as MCP servers, namespaces, endpoints, users, and API keys is not
 declared by this deployment template.
 
-## Image compatibility
+## Umbrella source version
 
-The default Umbrella image is currently published for `linux/amd64`. An ARM Coolify host must set
-`METAMCP_IMAGE` to an ARM-compatible build or provide amd64 emulation. Producing that image is
-outside ADR-0001; the override keeps this deployment template usable when such an image exists.
+The Compose build context is pinned to an exact commit of the public `umbrella` branch. Coolify
+builds that commit with Umbrella's own `Dockerfile` for the architecture of its Docker host. This
+avoids both the private/inaccessible GHCR package and the published image's `linux/amd64` limit.
+
+To upgrade Umbrella MetaMCP, verify the desired commit belongs to the `umbrella` branch, update the
+SHA in `docker-compose.yaml`, and redeploy. Do not replace the SHA with the mutable branch name or
+`latest` tag.
 
 ## Local validation
 

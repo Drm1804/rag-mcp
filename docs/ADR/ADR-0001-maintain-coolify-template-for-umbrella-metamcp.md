@@ -3,7 +3,8 @@
 - Status: Accepted
 - Date: 2026-09-07
 - Implemented: 2026-09-07 — [`docker-compose.yaml`](../../docker-compose.yaml)
-- Revised: 2026-09-08 — Cloudflare Tunnel added as the only public access path
+- Revised: 2026-09-08 — Cloudflare Tunnel added as the only public access path; application build
+  pinned to Umbrella source after the published GHCR image proved inaccessible and amd64-only
 - Tags: `mcp`, `metamcp`, `umbrella`, `coolify`, `docker-compose`, `cloudflare-tunnel`
 
 ## Context
@@ -12,7 +13,7 @@ Coolify уже распространяет MetaMCP через собствен�
 [`templates/compose/metamcp.yaml`](https://github.com/coollabsio/coolify/blob/main/templates/compose/metamcp.yaml).
 Этот шаблон представляет собой один Docker Compose-файл и описывает весь deploy stack:
 
-- контейнер MetaMCP из готового образа;
+- контейнер MetaMCP;
 - отдельный PostgreSQL с persistent volume;
 - переменные окружения и генерируемые Coolify секреты;
 - публичный URL приложения через magic variables Coolify;
@@ -38,7 +39,9 @@ Coolify уже распространяет MetaMCP через собствен�
 За основу берётся структура официального MetaMCP template из каталога Coolify. Наш шаблон должен
 сохранять тот же минимальный состав и соглашения:
 
-1. Сервис приложения запускается из готового образа Umbrella MetaMCP.
+1. Сервис приложения собирается из публичного репозитория Umbrella MetaMCP его собственным
+   `Dockerfile`. Build context закрепляется на точном commit SHA из ветки `umbrella`; mutable branch
+   name и тег `latest` не используются.
 2. PostgreSQL входит в тот же Compose stack и хранит данные в именованном persistent volume.
 3. Подключение к PostgreSQL, URL приложения и секрет аутентификации задаются через переменные
    окружения Coolify; секреты не коммитятся в git.
@@ -56,15 +59,15 @@ Coolify уже распространяет MetaMCP через собствен�
 просматриваются и при необходимости переносятся в наш template осознанным commit/PR.
 
 Допустимая дельта относительно официального шаблона ограничена требованиями Umbrella MetaMCP и
-нашего окружения: другой image reference, дополнительные поддерживаемые переменные окружения и
-необходимые настройки Coolify. Любое расширение stack новыми инфраструктурными компонентами
-требует отдельного решения.
+нашего окружения: source build вместо недоступного amd64-only image, Cloudflare Tunnel,
+дополнительные поддерживаемые переменные окружения и необходимые настройки Coolify.
 
 ## Scope
 
 В рамках ADR:
 
 - собственный Coolify-compatible Docker Compose template;
+- нативная сборка закреплённого commit Umbrella MetaMCP его собственным Dockerfile;
 - сервис Umbrella MetaMCP, его PostgreSQL и connector `cloudflared`;
 - Coolify variables, secrets, volume, healthchecks и dependency wiring;
 - внутренний origin Cloudflare Tunnel и публичный URL приложения;
@@ -74,7 +77,7 @@ Coolify уже распространяет MetaMCP через собствен�
 Вне рамок ADR:
 
 - форк или изменение исходного кода Umbrella MetaMCP;
-- собственная сборка образа MetaMCP;
+- собственный Dockerfile, патчи исходного кода или публикация нашего образа MetaMCP;
 - декларативное создание MCP-серверов, namespace'ов, endpoint'ов, пользователей и API-ключей;
 - конфигурация подключаемого `rag-gateway`;
 - backup policy, Cloudflare Access policy, DNS lifecycle и выбор конкретной версии образа.
@@ -91,6 +94,7 @@ Coolify уже распространяет MetaMCP через собствен�
 - изменения Umbrella-специфичного деплоя не зависят от принятия правок в официальный каталог;
 - обновление template и образа проходит через обычный review в `RAG-mcp`.
 - приложение не требует входящего host port: `cloudflared` устанавливает исходящее соединение.
+- сборка выполняется нативно на Docker host и не требует доступа к приватному Umbrella GHCR image.
 
 Отрицательные:
 
@@ -98,6 +102,8 @@ Coolify уже распространяет MetaMCP через собствен�
 - исправления официального MetaMCP template не попадут к нам автоматически;
 - расхождения с официальным шаблоном необходимо удерживать минимальными и документированными.
 - tunnel token и published application route необходимо создать и сопровождать в Cloudflare.
+- первый деплой и обновления MetaMCP требуют полной source build и занимают больше времени, чем
+  pull готового образа.
 
 ## Alternatives considered
 

@@ -6,7 +6,9 @@
 
 services:
   app:
-    image: ${METAMCP_IMAGE:-ghcr.io/umbrella-it-group/metamcp:latest}
+    build:
+      context: https://github.com/Umbrella-IT-Group/metamcp.git#de934f6b02afb1a9221efbc529a88cedcd82e0a9
+      dockerfile: Dockerfile
     environment:
       - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
