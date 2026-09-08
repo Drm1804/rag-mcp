@@ -16,7 +16,7 @@ deployment shape and Coolify variable conventions stay aligned with the catalog 
 3. Set the Compose location to `/docker-compose.yaml`.
 4. Add `METAMCP_PUBLIC_URL` with the public HTTPS origin, for example
    `https://metamcp.example.com`.
-5. Add `CLOUDFLARE_TUNNEL_TOKEN` as a secret variable.
+5. Add `TUNNEL_TOKEN` as a secret variable.
 6. Deploy the resource. Do not assign a Coolify proxy domain to the `app` service.
 
 Coolify generates and persists these credentials from the Compose file:
@@ -28,7 +28,8 @@ Coolify generates and persists these credentials from the Compose file:
 The following values must be supplied manually:
 
 - `METAMCP_PUBLIC_URL` — the exact public HTTPS origin exposed through the tunnel;
-- `CLOUDFLARE_TUNNEL_TOKEN` — token of a remotely-managed tunnel; mark it as secret.
+- `TUNNEL_TOKEN` — token of a remotely-managed tunnel; mark it as secret. Keep this standard
+  variable name: `cloudflared` redacts it from its environment log.
 
 In the Cloudflare dashboard, configure the tunnel's published application route as follows:
 
@@ -76,7 +77,7 @@ METAMCP_PUBLIC_URL=http://localhost:12008 \
 SERVICE_USER_POSTGRES=metamcp \
 SERVICE_PASSWORD_POSTGRES=local-only-password \
 SERVICE_PASSWORD_AUTH=local-only-auth-secret \
-CLOUDFLARE_TUNNEL_TOKEN=validation-only-token \
+TUNNEL_TOKEN=validation-only-token \
 docker compose -f docker-compose.yaml config
 ```
 

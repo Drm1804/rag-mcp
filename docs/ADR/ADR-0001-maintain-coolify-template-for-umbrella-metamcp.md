@@ -48,7 +48,8 @@ Coolify уже распространяет MetaMCP через собствен�
 4. Публичный origin задаётся обязательной переменной `METAMCP_PUBLIC_URL` и передаётся в
    `APP_URL` и `NEXT_PUBLIC_APP_URL`. Coolify proxy для сервиса приложения не используется.
 5. `cloudflared` запускается из официального образа с remotely-managed tunnel token из secret
-   variable `CLOUDFLARE_TUNNEL_TOKEN` и зависит от успешного healthcheck приложения.
+   variable `TUNNEL_TOKEN` и зависит от успешного healthcheck приложения. Используется именно
+   стандартное имя: `cloudflared` маскирует его значение в собственных startup logs.
 6. В Cloudflare tunnel route направляется на `http://app:12008`; host port не публикуется.
 7. Для приложения и PostgreSQL определяются healthchecks, а приложение зависит от готовности БД.
 8. Docker Compose-файл является source of truth для состава stack, переменных, volumes и
