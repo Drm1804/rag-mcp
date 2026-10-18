@@ -7,7 +7,7 @@
 services:
   app:
     build:
-      context: https://github.com/Umbrella-IT-Group/metamcp.git#1a6b9e4afa108e34cf063a1712faff064a98dc8d
+      context: https://github.com/Drm1804/metamcp.git#6694a8d140fe8baa14de8c5a4e79fb1a23c7424b
       dockerfile: Dockerfile
     environment:
       - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
